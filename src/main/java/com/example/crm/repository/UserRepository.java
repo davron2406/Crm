@@ -1,5 +1,6 @@
 package com.example.crm.repository;
 
+
 import com.example.crm.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

@@ -1,0 +1,87 @@
+package com.example.crm.service;
+
+
+import com.example.crm.entity.User;
+import com.example.crm.payload.ApiResponse;
+import com.example.crm.payload.UserDto;
+import com.example.crm.repository.RoleRepository;
+import com.example.crm.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import java.util.Optional;
+import java.util.UUID;
+
+@Service
+public class UserService {
+
+    @Autowired
+    UserRepository userRepository;
+
+    @Autowired
+    PasswordEncoder passwordEncoder;
+
+    @Autowired
+    RoleRepository roleRepository;
+    public ApiResponse editUser(UUID id, UserDto userDto){
+        Optional<User> optionalUser = userRepository.findById(id);
+        if (optionalUser.isEmpty())
+            return new ApiResponse("User Not found",false);
+
+        User user = optionalUser.get();
+        User editedUser = userDtotoUser(userDto, user);
+        userRepository.save(editedUser);
+        return new ApiResponse("User successfully edited",true);
+    }
+
+    private User userDtotoUser(UserDto userDto, User user){
+        if(userDto.getFullName() != null)
+            user.setFullName(userDto.getFullName());
+        if(userDto.getPassword() != null)
+            user.setPassword(passwordEncoder.encode(userDto.getPassword()));
+        if(userDto.getRoleId() != null){
+            user.setRole(roleRepository.findById(userDto.getRoleId()).get());
+        }
+        if(userDto.getEmail() != null){
+            user.setEmail(userDto.getEmail());
+        }
+
+        return user;
+    }
+
+    public Page<User> getUsers(int status,Pageable page){
+        if(status < 0){
+            return userRepository.getAllUsers(page);
+        }
+        return  userRepository.getOnlyUsersByStatus(status,page);
+    }
+
+
+    public Page<User> searchUser(String email,Pageable pageable) {
+        return userRepository.searchUserByEmail(email,pageable);
+    }
+
+    public ApiResponse blockUser(UUID id) {
+        Optional<User> byId = userRepository.findById(id);
+        if(byId.isEmpty()){
+            return new ApiResponse("User Not found",false);
+        }
+        User user = byId.get();
+        user.setStatus(0);
+        userRepository.save(user);
+        return new ApiResponse("User successfully blocked",true);
+    }
+
+    public ApiResponse deleteUser(UUID id) {
+        Optional<User> byId = userRepository.findById(id);
+        if(byId.isEmpty()){
+            return new ApiResponse("User Not found",false);
+        }
+        User user = byId.get();
+        userRepository.delete(user);
+        return new ApiResponse("User successfully deleted",true);
+    }
+}
